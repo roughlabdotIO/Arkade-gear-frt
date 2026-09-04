@@ -1,0 +1,170 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --acid-yellow: #DFFF00;
+    --acid-yellow-bright: #CCFF00;
+    --purple-bg: #120024;
+    --purple-card: #1e003b;
+    --purple-deep: #4B0082;
+    --crt-color: rgba(223, 255, 0, 0.04);
+  }
+
+  body {
+    font-family: 'Space Mono', 'Press Start 2P', monospace;
+    background-color: #120024;
+    color: #DFFF00;
+  }
+}
+
+/* Sleek Interface Borders, Shadows & Utility Classes */
+.sleek-title {
+  text-shadow: 4px 4px 0px #4B0082, 8px 8px 0px #DFFF00;
+}
+
+.sleek-title-sm {
+  text-shadow: 2px 2px 0px #4B0082, 4px 4px 0px #DFFF00;
+}
+
+.sleek-card {
+  background-color: #1e003b;
+  border: 4px solid #DFFF00;
+  transition: all 0.1s ease-in-out;
+}
+
+.sleek-card:hover {
+  box-shadow: 6px 6px 0px #4B0082;
+}
+
+.sleek-card-inverted {
+  background-color: #DFFF00;
+  border: 4px solid #DFFF00;
+  color: #120024;
+}
+
+.sleek-btn {
+  border: 2px solid #DFFF00;
+  background-color: transparent;
+  color: #DFFF00;
+  font-weight: 700;
+  text-transform: uppercase;
+  transition: all 0.1s ease-in-out;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sleek-btn:hover {
+  background-color: #DFFF00;
+  color: #120024;
+}
+
+.sleek-btn:active {
+  transform: translate(2px, 2px);
+}
+
+.sleek-btn-primary {
+  background-color: #DFFF00;
+  color: #120024;
+  border: 2px solid #DFFF00;
+  font-weight: 800;
+  text-transform: uppercase;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.1s ease-in-out;
+}
+
+.sleek-btn-primary:hover {
+  background-color: #CCFF00;
+  box-shadow: 4px 4px 0px #4B0082;
+}
+
+.sleek-badge {
+  background-color: #4B0082;
+  color: #DFFF00;
+  border: 1px solid #DFFF00;
+}
+
+/* 8-bit Pixel Borders & Shadows backward compatibility */
+.pixel-box {
+  border: 4px solid #DFFF00;
+  background-color: #1e003b;
+  box-shadow: 4px 4px 0px #4B0082;
+}
+
+.pixel-box-yellow {
+  border: 4px solid #DFFF00;
+  background-color: #DFFF00;
+  color: #120024;
+}
+
+.pixel-box-purple {
+  border: 4px solid #4B0082;
+  background-color: #1e003b;
+}
+
+.pixel-btn {
+  border: 2px solid #DFFF00;
+  background-color: #120024;
+  color: #DFFF00;
+  transition: all 0.1s ease-in-out;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pixel-btn:hover {
+  background-color: #DFFF00;
+  color: #120024;
+  box-shadow: 3px 3px 0px #4B0082;
+}
+
+.pixel-btn:active {
+  transform: translate(2px, 2px);
+}
+
+/* CRT Scanlines Overlay */
+.crt-scanlines {
+  background: linear-gradient(
+    rgba(18, 0, 36, 0) 50%, 
+    rgba(0, 0, 0, 0.35) 50%
+  ), 
+  linear-gradient(
+    90deg,
+    rgba(223, 255, 0, 0.02),
+    rgba(0, 0, 0, 0.01),
+    rgba(75, 0, 130, 0.03)
+  );
+  background-size: 100% 4px, 6px 100%;
+  pointer-events: none;
+}
+
+/* Subtle CRT screen curvature flicker */
+@keyframes flicker {
+  0% { opacity: 0.98; }
+  50% { opacity: 1; }
+  100% { opacity: 0.97; }
+}
+
+.crt-flicker {
+  animation: flicker 0.15s infinite;
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #120024;
+  border-left: 2px solid #4B0082;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4B0082;
+  border: 1px solid #DFFF00;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #DFFF00;
+}
+

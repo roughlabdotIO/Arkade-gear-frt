@@ -1,0 +1,6 @@
+{
+  "name": "arkade Gear",
+  "description": "Retro 8-bit multi-emulator manager and ROM station with acid yellow and neon purple aesthetics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
