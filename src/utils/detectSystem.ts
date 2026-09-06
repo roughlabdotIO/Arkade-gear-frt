@@ -10,6 +10,7 @@ export function detectSystemFromFilename(name: string): SystemId {
   if (ext === '.iso' || ext === '.cue' || ext === '.chd') return 'psx';
   if (ext === '.z64' || ext === '.n64' || ext === '.v64') return 'n64';
   if (ext === '.neo') return 'neogeo';
-  if (ext === '.zip') return 'arcade';
+  // .zip is a generic archive extension used by many systems' ROM sets (not just arcade) - can't
+  // guess the system from it alone, so it falls through to the default below like any unknown extension.
   return 'nes';
 }

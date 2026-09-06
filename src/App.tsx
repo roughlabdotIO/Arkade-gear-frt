@@ -142,6 +142,13 @@ export default function App() {
     setRoms(prev => [newRom, ...prev]);
   };
 
+  const handleUpdateRom = (updatedRom: RomGame) => {
+    setRoms(prev => prev.map(r => (r.id === updatedRom.id ? updatedRom : r)));
+    if (selectedGameForDetails?.id === updatedRom.id) {
+      setSelectedGameForDetails(updatedRom);
+    }
+  };
+
   const handleDeleteRom = (gameId: string) => {
     setRoms(prev => prev.filter(r => r.id !== gameId));
     if (selectedGameForDetails?.id === gameId) {
@@ -315,9 +322,11 @@ export default function App() {
         <GameDetailsModal
           game={selectedGameForDetails}
           system={systems.find(s => s.id === selectedGameForDetails.systemId)}
+          systems={systems}
           onLaunch={(game) => setRunningGame(game)}
           onToggleFavorite={handleToggleFavorite}
           onDeleteRom={handleDeleteRom}
+          onUpdateRom={handleUpdateRom}
           onClose={() => setSelectedGameForDetails(null)}
         />
       )}
