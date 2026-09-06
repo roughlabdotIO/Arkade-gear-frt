@@ -29,7 +29,9 @@ export default function App() {
 
   const [roms, setRoms] = useState<RomGame[]>(() => {
     const saved = localStorage.getItem('arkade_gear_roms');
-    return saved ? JSON.parse(saved) : INITIAL_ROMS;
+    const parsed: RomGame[] = saved ? JSON.parse(saved) : INITIAL_ROMS;
+    // Drop any leftover mock/demo entries (they never have a serverFileName) from previously cached state.
+    return parsed.filter(r => Boolean(r.serverFileName));
   });
 
   const [biosRecords, setBiosRecords] = useState<BiosRecord[]>(() => {
