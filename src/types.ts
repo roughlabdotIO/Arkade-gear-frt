@@ -15,6 +15,8 @@ export interface EmulatorSystem {
   company: string;
   activeCore: string;
   availableCores: string[];
+  /** Real libretro core id used to launch this system via the webretro backend (e.g. "nestopia", "snes9x"). Empty string means no compiled core is available yet. */
+  coreId: string;
   biosStatus: BiosStatus;
   biosFile: string;
   fileExtensions: string[];
@@ -42,6 +44,8 @@ export interface RomGame {
   playTimeMinutes: number;
   lastPlayed?: string;
   saveStatesCount: number;
+  /** Filename of the real ROM stored on the backend (in roms/), as returned by POST /api/roms/upload. Absent for demo/mock entries, which cannot be launched. */
+  serverFileName?: string;
   pixelArtIcon: string;
   pixelThemeColor: string;
   description: string;

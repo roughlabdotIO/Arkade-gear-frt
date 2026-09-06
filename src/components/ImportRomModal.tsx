@@ -3,6 +3,8 @@ import { RomGame, SystemId, EmulatorSystem } from '../types';
 import { PixelCartridge } from '../utils/pixelIcons';
 import { X, Upload, Check, AlertCircle } from 'lucide-react';
 import { retroAudio } from '../utils/audio';
+import { uploadRom } from '../utils/api';
+import { detectSystemFromFilename } from '../utils/detectSystem';
 
 interface ImportRomModalProps {
   systems: EmulatorSystem[];
@@ -22,26 +24,17 @@ export const ImportRomModal: React.FC<ImportRomModalProps> = ({
   const [year, setYear] = useState(1990);
   const [size, setSize] = useState('512 KB');
   const [fileName, setFileName] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  // Auto detect system from filename extension
-  const detectSystemFromFilename = (name: string) => {
-    const ext = name.slice(name.lastIndexOf('.')).toLowerCase();
-    if (ext === '.nes' || ext === '.fds') return 'nes';
-    if (ext === '.smc' || ext === '.sfc' || ext === '.fig') return 'snes';
-    if (ext === '.gba' || ext === '.agb') return 'gba';
-    if (ext === '.md' || ext === '.gen' || ext === '.smd') return 'genesis';
-    if (ext === '.iso' || ext === '.cue' || ext === '.chd') return 'psx';
-    if (ext === '.z64' || ext === '.n64' || ext === '.v64') return 'n64';
-    if (ext === '.neo') return 'neogeo';
-    if (ext === '.zip') return 'arcade';
-    return 'nes';
-  };
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const file = files[0];
     setFileName(file.name);
+    setSelectedFile(file);
+    setError(null);
 
     // derive clean title from filename
     const cleanTitle = file.name
@@ -64,34 +57,53 @@ export const ImportRomModal: React.FC<ImportRomModalProps> = ({
     retroAudio.playBlip(750);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
       setError('PLEASE PROVIDE A ROM TITLE');
       retroAudio.playCancel();
       return;
     }
+    if (!selectedFile) {
+      setError('PLEASE SELECT A ROM FILE');
+      retroAudio.playCancel();
+      return;
+    }
 
-    const newRom: RomGame = {
-      id: `rom-custom-${Date.now()}`,
-      title: title.trim(),
-      systemId,
-      size: size || '1.0 MB',
-      region,
-      year: Number(year) || 1992,
-      genre,
-      rating: 5,
-      favorite: true,
-      playTimeMinutes: 0,
-      saveStatesCount: 0,
-      pixelArtIcon: systemId === 'arcade' ? 'arcade' : systemId === 'psx' ? 'disc' : 'cartridge',
-      pixelThemeColor: '#dfff00',
-      description: `User-imported cartridge for ${systemId.toUpperCase()} system. Ready for emulation.`
-    };
+    setError(null);
+    setIsUploading(true);
+    setUploadProgress(0);
 
-    retroAudio.playPowerUp();
-    onAddRom(newRom);
-    onClose();
+    try {
+      const uploaded = await uploadRom(selectedFile, setUploadProgress);
+
+      const newRom: RomGame = {
+        id: `rom-custom-${Date.now()}`,
+        title: title.trim(),
+        systemId,
+        size: size || '1.0 MB',
+        region,
+        year: Number(year) || 1992,
+        genre,
+        rating: 5,
+        favorite: true,
+        playTimeMinutes: 0,
+        saveStatesCount: 0,
+        serverFileName: uploaded.name,
+        pixelArtIcon: systemId === 'arcade' ? 'arcade' : systemId === 'psx' ? 'disc' : 'cartridge',
+        pixelThemeColor: '#dfff00',
+        description: `User-imported cartridge for ${systemId.toUpperCase()} system. Ready for emulation.`
+      };
+
+      retroAudio.playPowerUp();
+      onAddRom(newRom);
+      onClose();
+    } catch (err) {
+      retroAudio.playCancel();
+      setError(err instanceof Error ? err.message.toUpperCase() : 'UPLOAD FAILED');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -249,10 +261,11 @@ export const ImportRomModal: React.FC<ImportRomModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-[#DFFF00] hover:bg-[#CCFF00] text-[#120024] border-2 border-[#DFFF00] text-xs font-black shadow-[3px_3px_0px_#4B0082] flex items-center gap-2 transition-colors"
+              disabled={isUploading}
+              className="px-5 py-2 bg-[#DFFF00] hover:bg-[#CCFF00] disabled:opacity-60 disabled:cursor-not-allowed text-[#120024] border-2 border-[#DFFF00] text-xs font-black shadow-[3px_3px_0px_#4B0082] flex items-center gap-2 transition-colors"
             >
               <Check size={13} />
-              <span>INSTALL TO LIBRARY</span>
+              <span>{isUploading ? `UPLOADING... ${uploadProgress}%` : 'INSTALL TO LIBRARY'}</span>
             </button>
           </div>
         </form>

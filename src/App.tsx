@@ -17,6 +17,8 @@ import { CoreSettingsModal } from './components/CoreSettingsModal';
 import { GameDetailsModal } from './components/GameDetailsModal';
 import { retroAudio } from './utils/audio';
 import { PixelGamepad, PixelCrtMonitor, PixelCpu, PixelCartridge } from './utils/pixelIcons';
+import { listServerRoms } from './utils/api';
+import { detectSystemFromFilename } from './utils/detectSystem';
 
 export default function App() {
   // Systems & ROM State
@@ -77,6 +79,47 @@ export default function App() {
       localStorage.setItem('arkade_gear_controls', JSON.stringify(controllerMapping));
     } catch {}
   }, [controllerMapping]);
+
+  // Reconcile library with ROMs actually stored on the backend
+  useEffect(() => {
+    listServerRoms()
+      .then(serverRoms => {
+        setRoms(prev => {
+          const known = new Set(prev.map(r => r.serverFileName).filter(Boolean));
+          const additions: RomGame[] = serverRoms
+            .filter(sr => !known.has(sr.name))
+            .map(sr => {
+              const cleanTitle = sr.name
+                .replace(/\.[^/.]+$/, '')
+                .replace(/_/g, ' ')
+                .trim();
+              return {
+                id: `rom-server-${sr.name}`,
+                title: cleanTitle || sr.name,
+                systemId: detectSystemFromFilename(sr.name),
+                size: sr.size > 1024 * 1024
+                  ? `${(sr.size / (1024 * 1024)).toFixed(1)} MB`
+                  : `${Math.max(1, Math.round(sr.size / 1024))} KB`,
+                region: 'WORLD',
+                year: new Date().getFullYear(),
+                genre: 'Uncategorized',
+                rating: 0,
+                favorite: false,
+                playTimeMinutes: 0,
+                saveStatesCount: 0,
+                serverFileName: sr.name,
+                pixelArtIcon: 'cartridge',
+                pixelThemeColor: '#dfff00',
+                description: 'Imported from the server ROM library.'
+              };
+            });
+          return additions.length > 0 ? [...additions, ...prev] : prev;
+        });
+      })
+      .catch(() => {
+        // Backend unreachable (e.g. offline dev) - keep whatever is already in the local library.
+      });
+  }, []);
 
   // Audio mute handler
   const handleToggleMute = () => {

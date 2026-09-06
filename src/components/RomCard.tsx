@@ -132,13 +132,16 @@ export const RomCard: React.FC<RomCardProps> = ({
         <div className="grid grid-cols-5 gap-2">
           <button
             onClick={() => {
+              if (!game.serverFileName) return;
               retroAudio.playPowerUp();
               onLaunch(game);
             }}
-            className="col-span-4 border-2 border-[#DFFF00] py-2 px-3 font-bold hover:bg-[#DFFF00] hover:text-[#120024] transition-colors uppercase text-xs flex items-center justify-center gap-2 bg-[#120024] text-[#DFFF00]"
+            disabled={!game.serverFileName}
+            title={game.serverFileName ? undefined : 'Demo entry - no ROM file stored on the server'}
+            className="col-span-4 border-2 border-[#DFFF00] py-2 px-3 font-bold hover:bg-[#DFFF00] hover:text-[#120024] transition-colors uppercase text-xs flex items-center justify-center gap-2 bg-[#120024] text-[#DFFF00] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#120024] disabled:hover:text-[#DFFF00]"
           >
             <Play size={12} className="fill-current" />
-            <span>LAUNCH SYSTEM</span>
+            <span>{game.serverFileName ? 'LAUNCH SYSTEM' : 'DEMO (NO FILE)'}</span>
           </button>
 
           <button
