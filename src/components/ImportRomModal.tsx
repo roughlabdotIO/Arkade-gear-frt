@@ -9,17 +9,20 @@ import { detectRegionFromFilename } from '../utils/detectRegion';
 
 interface ImportRomModalProps {
   systems: EmulatorSystem[];
+  /** When set (a specific console panel is selected, not "all"), imports are pinned to this system instead of guessing it from the filename. */
+  lockedSystemId?: SystemId;
   onAddRom: (newRom: RomGame) => void;
   onClose: () => void;
 }
 
 export const ImportRomModal: React.FC<ImportRomModalProps> = ({
   systems,
+  lockedSystemId,
   onAddRom,
   onClose
 }) => {
   const [title, setTitle] = useState('');
-  const [systemId, setSystemId] = useState<SystemId>('nes');
+  const [systemId, setSystemId] = useState<SystemId>(lockedSystemId ?? 'nes');
   const [region, setRegion] = useState<'USA' | 'EUR' | 'JPN' | 'WORLD'>('USA');
   const [genre, setGenre] = useState('Platformer');
   const [year, setYear] = useState(1990);
@@ -45,8 +48,11 @@ export const ImportRomModal: React.FC<ImportRomModalProps> = ({
       .trim();
 
     setTitle(cleanTitle || 'Custom Retro Rom');
-    const detected = detectSystemFromFilename(file.name);
-    setSystemId(detected);
+    // A console panel already tells us the target system with certainty - don't let a filename
+    // guess (e.g. ".zip" matching several systems) override it.
+    if (!lockedSystemId) {
+      setSystemId(detectSystemFromFilename(file.name));
+    }
     setRegion(detectRegionFromFilename(file.name));
 
     // format file size
@@ -184,11 +190,15 @@ export const ImportRomModal: React.FC<ImportRomModalProps> = ({
             <div>
               <label className="block text-xs text-[#DFFF00] uppercase font-bold mb-1">
                 TARGET EMULATOR:
+                {lockedSystemId && (
+                  <span className="text-[#CCFF00] normal-case font-normal"> (locked to the selected console panel)</span>
+                )}
               </label>
               <select
                 value={systemId}
+                disabled={Boolean(lockedSystemId)}
                 onChange={(e) => setSystemId(e.target.value as SystemId)}
-                className="w-full px-3 py-2 bg-[#120024] border-2 border-[#DFFF00] text-xs text-[#DFFF00] focus:outline-none focus:bg-[#15002c] uppercase font-bold cursor-pointer"
+                className="w-full px-3 py-2 bg-[#120024] border-2 border-[#DFFF00] text-xs text-[#DFFF00] focus:outline-none focus:bg-[#15002c] uppercase font-bold cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {systems.map(s => (
                   <option key={s.id} value={s.id} className="bg-[#120024] text-[#DFFF00]">

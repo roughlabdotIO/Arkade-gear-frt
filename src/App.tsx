@@ -362,6 +362,7 @@ export default function App() {
       {isImportRomOpen && (
         <ImportRomModal
           systems={systems}
+          lockedSystemId={selectedSystemId !== 'all' ? selectedSystemId : undefined}
           onAddRom={handleAddRom}
           onClose={() => setIsImportRomOpen(false)}
         />
