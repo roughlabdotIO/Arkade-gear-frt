@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ControllerMapping } from '../types';
 import { PixelGamepad } from '../utils/pixelIcons';
-import { X, RotateCcw, Check, Sliders } from 'lucide-react';
+import { X, RotateCcw, Check, Sliders, Usb } from 'lucide-react';
 import { retroAudio } from '../utils/audio';
+import { useGamepads, STANDARD_GAMEPAD_BUTTONS } from '../utils/useGamepads';
 
 interface ControllerConfigModalProps {
   mapping: ControllerMapping;
@@ -18,6 +19,7 @@ export const ControllerConfigModal: React.FC<ControllerConfigModalProps> = ({
   const [currentMapping, setCurrentMapping] = useState<ControllerMapping>(initialMapping);
   const [listeningKey, setListeningKey] = useState<keyof ControllerMapping | null>(null);
   const [activeKeysPressed, setActiveKeysPressed] = useState<Set<string>>(new Set());
+  const gamepads = useGamepads(true);
 
   // Listen for keydown when remapping or testing
   useEffect(() => {
@@ -51,10 +53,14 @@ export const ControllerConfigModal: React.FC<ControllerConfigModalProps> = ({
     };
   }, [listeningKey]);
 
-  // Check if a virtual button is currently pressed on keyboard
+  // Check if a virtual button is currently pressed, either on keyboard or on a connected standard-mapped gamepad
   const isButtonPressed = (actionKey: keyof ControllerMapping) => {
     const boundCode = currentMapping[actionKey];
-    return typeof boundCode === 'string' && activeKeysPressed.has(boundCode);
+    if (typeof boundCode === 'string' && activeKeysPressed.has(boundCode)) return true;
+
+    const gamepadButtonIndex = (STANDARD_GAMEPAD_BUTTONS as Record<string, number>)[actionKey];
+    if (gamepadButtonIndex === undefined) return false;
+    return gamepads.some(pad => pad.mapping === 'standard' && pad.buttons[gamepadButtonIndex]);
   };
 
   const handleResetDefaults = () => {
@@ -104,7 +110,7 @@ export const ControllerConfigModal: React.FC<ControllerConfigModalProps> = ({
           <div className="flex items-center gap-2.5">
             <PixelGamepad size={22} color="#DFFF00" />
             <h2 className="text-xs sm:text-sm font-black text-[#DFFF00] uppercase tracking-wider">
-              CONTROLLER INPUT MAPPER // 8-BIT
+              CONTROLLER SETUP // KEYBOARD + GAMEPAD
             </h2>
           </div>
           <button
@@ -119,10 +125,50 @@ export const ControllerConfigModal: React.FC<ControllerConfigModalProps> = ({
         </div>
 
         <div className="p-4 sm:p-6 space-y-5">
+          {/* Connected Physical Controllers */}
+          <div className="bg-[#120024] border-2 border-[#DFFF00] p-3.5">
+            <div className="flex items-center gap-2 text-xs font-bold text-[#DFFF00] uppercase mb-2">
+              <Usb size={14} />
+              <span>Physical Controllers (USB / Bluetooth)</span>
+            </div>
+            {gamepads.length === 0 ? (
+              <p className="text-[10px] text-[#DFFF00]/60 leading-relaxed">
+                None detected yet. Connect a USB controller, or pair one over Bluetooth at the TV/OS
+                level (not inside this app) — it shows up here the same way either way. Then press any
+                button to wake the browser's detection.
+              </p>
+            ) : (
+              <div className="space-y-1.5">
+                {gamepads.map(pad => (
+                  <div
+                    key={pad.index}
+                    className="flex items-center justify-between gap-2 text-[10px] bg-[#1e003b] border border-[#DFFF00]/40 px-2.5 py-1.5"
+                  >
+                    <span className="truncate text-[#DFFF00] font-bold">{pad.id}</span>
+                    <span
+                      className={`shrink-0 px-1.5 py-0.5 border font-bold uppercase ${
+                        pad.mapping === 'standard'
+                          ? 'border-[#CCFF00] text-[#CCFF00]'
+                          : 'border-[#DFFF00]/50 text-[#DFFF00]/70'
+                      }`}
+                    >
+                      {pad.mapping === 'standard' ? 'Standard mapping' : 'Non-standard layout'}
+                    </span>
+                  </div>
+                ))}
+                <p className="text-[9px] text-[#DFFF00]/50 leading-relaxed pt-1">
+                  Press its buttons below to confirm the diagram lights up correctly. "Non-standard
+                  layout" means the browser couldn't normalize this pad's buttons — it may not line up
+                  with the diagram even though it still works in-game.
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Interactive Gamepad Visualizer Diagram */}
           <div className="bg-[#120024] border-2 border-[#DFFF00] p-4 text-center">
             <div className="text-[10px] text-[#DFFF00]/70 uppercase mb-3 font-mono tracking-wider font-bold">
-              [VISUAL GAMEPAD TESTER - PRESS KEYS TO TEST LIT BUTTONS]
+              [VISUAL TESTER - PRESS A KEYBOARD KEY OR CONTROLLER BUTTON TO TEST LIT BUTTONS]
             </div>
 
             <div className="inline-block relative bg-[#1e003b] border-2 border-[#DFFF00] p-6 max-w-md w-full shadow-[4px_4px_0px_#4B0082]">
