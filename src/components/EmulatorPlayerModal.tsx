@@ -32,8 +32,10 @@ export const EmulatorPlayerModal: React.FC<EmulatorPlayerModalProps> = ({
   const [isMuted, setIsMuted] = useState(false);
 
   const canLaunch = Boolean(game.serverFileName) && Boolean(system.coreId);
+  // "core" names a libretro core id directly; "system" instead matches against the console's
+  // display name (e.g. "NES"), which is not what EmulatorSystem.coreId holds.
   const embedSrc = canLaunch
-    ? `${getBackendOrigin()}/?system=${encodeURIComponent(system.coreId)}&rom=${encodeURIComponent(serverRomUrl(game.serverFileName!))}`
+    ? `${getBackendOrigin()}/?core=${encodeURIComponent(system.coreId)}&rom=${encodeURIComponent(serverRomUrl(game.serverFileName!))}`
     : null;
 
   // Playtime tracker
