@@ -5,6 +5,7 @@ import { X, Upload, Check, AlertCircle } from 'lucide-react';
 import { retroAudio } from '../utils/audio';
 import { uploadRom } from '../utils/api';
 import { detectSystemFromFilename } from '../utils/detectSystem';
+import { detectRegionFromFilename } from '../utils/detectRegion';
 
 interface ImportRomModalProps {
   systems: EmulatorSystem[];
@@ -46,6 +47,7 @@ export const ImportRomModal: React.FC<ImportRomModalProps> = ({
     setTitle(cleanTitle || 'Custom Retro Rom');
     const detected = detectSystemFromFilename(file.name);
     setSystemId(detected);
+    setRegion(detectRegionFromFilename(file.name));
 
     // format file size
     if (file.size > 1024 * 1024) {

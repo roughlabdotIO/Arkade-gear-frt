@@ -19,6 +19,7 @@ import { retroAudio } from './utils/audio';
 import { PixelGamepad, PixelCrtMonitor, PixelCpu, PixelCartridge } from './utils/pixelIcons';
 import { listServerRoms } from './utils/api';
 import { detectSystemFromFilename } from './utils/detectSystem';
+import { detectRegionFromFilename } from './utils/detectRegion';
 
 export default function App() {
   // Systems & ROM State
@@ -102,7 +103,7 @@ export default function App() {
                 size: sr.size > 1024 * 1024
                   ? `${(sr.size / (1024 * 1024)).toFixed(1)} MB`
                   : `${Math.max(1, Math.round(sr.size / 1024))} KB`,
-                region: 'WORLD',
+                region: detectRegionFromFilename(sr.name),
                 year: new Date().getFullYear(),
                 genre: 'Uncategorized',
                 rating: 0,
