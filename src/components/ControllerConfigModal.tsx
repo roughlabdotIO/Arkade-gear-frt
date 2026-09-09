@@ -139,23 +139,37 @@ export const ControllerConfigModal: React.FC<ControllerConfigModalProps> = ({
               </p>
             ) : (
               <div className="space-y-1.5">
-                {gamepads.map(pad => (
-                  <div
-                    key={pad.index}
-                    className="flex items-center justify-between gap-2 text-[10px] bg-[#1e003b] border border-[#DFFF00]/40 px-2.5 py-1.5"
-                  >
-                    <span className="truncate text-[#DFFF00] font-bold">{pad.id}</span>
-                    <span
-                      className={`shrink-0 px-1.5 py-0.5 border font-bold uppercase ${
-                        pad.mapping === 'standard'
-                          ? 'border-[#CCFF00] text-[#CCFF00]'
-                          : 'border-[#DFFF00]/50 text-[#DFFF00]/70'
-                      }`}
-                    >
-                      {pad.mapping === 'standard' ? 'Standard mapping' : 'Non-standard layout'}
-                    </span>
-                  </div>
-                ))}
+                {gamepads.map(pad => {
+                  const pressedIndexes = pad.buttons
+                    .map((pressed, i) => (pressed ? i : -1))
+                    .filter(i => i >= 0);
+                  const movedAxes = pad.axes
+                    .map((v, i) => (Math.abs(v) > 0.3 ? `${i}:${v.toFixed(2)}` : null))
+                    .filter(Boolean);
+
+                  return (
+                    <div key={pad.index} className="bg-[#1e003b] border border-[#DFFF00]/40 px-2.5 py-1.5 space-y-1">
+                      <div className="flex items-center justify-between gap-2 text-[10px]">
+                        <span className="truncate text-[#DFFF00] font-bold">{pad.id}</span>
+                        <span
+                          className={`shrink-0 px-1.5 py-0.5 border font-bold uppercase ${
+                            pad.mapping === 'standard'
+                              ? 'border-[#CCFF00] text-[#CCFF00]'
+                              : 'border-[#DFFF00]/50 text-[#DFFF00]/70'
+                          }`}
+                        >
+                          {pad.mapping === 'standard' ? 'Standard mapping' : 'Non-standard layout'}
+                        </span>
+                      </div>
+                      {pad.mapping !== 'standard' && (
+                        <div className="text-[9px] text-[#DFFF00]/70 font-mono">
+                          RAW BUTTONS PRESSED: [{pressedIndexes.join(', ') || 'none'}]
+                          {movedAxes.length > 0 && <> · AXES: [{movedAxes.join(', ')}]</>}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
                 <p className="text-[9px] text-[#DFFF00]/50 leading-relaxed pt-1">
                   Press its buttons below to confirm the diagram lights up correctly. "Non-standard
                   layout" means the browser couldn't normalize this pad's buttons — it may not line up
