@@ -7,7 +7,7 @@ import {
   PixelFloppy,
   PixelHeart
 } from '../utils/pixelIcons';
-import { X, Play, Trash2, Clock, HardDrive, Calendar, Globe, Cpu, Pencil, Check } from 'lucide-react';
+import { X, Play, Trash2, Clock, HardDrive, Calendar, Globe, Cpu, Pencil, Check, Nfc, Copy } from 'lucide-react';
 import { retroAudio } from '../utils/audio';
 
 interface GameDetailsModalProps {
@@ -32,6 +32,20 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   onClose
 }) => {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const nfcLaunchUrl = game.serverFileName
+    ? `${window.location.origin}${window.location.pathname}?launch=${encodeURIComponent(game.serverFileName)}`
+    : null;
+
+  const copyNfcLink = () => {
+    if (!nfcLaunchUrl) return;
+    navigator.clipboard.writeText(nfcLaunchUrl).then(() => {
+      retroAudio.playBlip(700);
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 2000);
+    });
+  };
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(game.title);
   const [editSystemId, setEditSystemId] = useState<SystemId>(game.systemId);
@@ -268,6 +282,31 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                   {system?.shader}
                 </div>
               </div>
+
+              {/* NFC launch link */}
+              {nfcLaunchUrl && (
+                <div className="bg-[#120024] border-2 border-[#DFFF00] p-2.5 space-y-1.5">
+                  <div className="flex items-center gap-2 text-[10px] text-[#DFFF00]/60 uppercase font-bold">
+                    <Nfc size={14} className="text-[#DFFF00]" />
+                    <span>NFC / Direct Launch Link:</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 min-w-0 truncate text-[10px] text-[#DFFF00] bg-[#1e003b] border border-[#DFFF00]/40 px-2 py-1.5 font-mono">
+                      {nfcLaunchUrl}
+                    </code>
+                    <button
+                      onClick={copyNfcLink}
+                      className="shrink-0 px-2.5 py-1.5 border-2 border-[#DFFF00] hover:bg-[#DFFF00] hover:text-[#120024] text-[#DFFF00] transition-colors flex items-center gap-1.5 text-[10px] font-bold uppercase"
+                    >
+                      <Copy size={12} />
+                      <span>{linkCopied ? 'Copied!' : 'Copy'}</span>
+                    </button>
+                  </div>
+                  <p className="text-[9px] text-[#DFFF00]/50 leading-relaxed">
+                    Write this URL to an NFC card/tag - tapping it opens Arkade Gear straight into this game.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

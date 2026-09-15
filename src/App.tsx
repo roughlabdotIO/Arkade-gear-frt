@@ -58,6 +58,11 @@ export default function App() {
   const [isBiosManagerOpen, setIsBiosManagerOpen] = useState<boolean>(false);
   const [isImportRomOpen, setIsImportRomOpen] = useState<boolean>(false);
 
+  // NFC / deep-link: ?launch=<serverFileName> auto-opens that ROM once it's available.
+  const [pendingLaunchFileName, setPendingLaunchFileName] = useState<string | null>(() => {
+    return new URLSearchParams(window.location.search).get('launch');
+  });
+
   // Persist state updates to localStorage
   useEffect(() => {
     try {
@@ -82,6 +87,18 @@ export default function App() {
       localStorage.setItem('arkade_gear_controls', JSON.stringify(controllerMapping));
     } catch {}
   }, [controllerMapping]);
+
+  // NFC / deep-link launch: once the requested ROM shows up in the library (either already
+  // cached locally or from the server reconciliation below), open it and consume the request
+  // so it doesn't re-trigger every time `roms` changes afterwards.
+  useEffect(() => {
+    if (!pendingLaunchFileName) return;
+    const match = roms.find(r => r.serverFileName === pendingLaunchFileName);
+    if (match) {
+      setRunningGame(match);
+      setPendingLaunchFileName(null);
+    }
+  }, [pendingLaunchFileName, roms]);
 
   // Reconcile library with ROMs actually stored on the backend
   useEffect(() => {
