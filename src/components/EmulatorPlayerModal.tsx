@@ -37,10 +37,20 @@ export const EmulatorPlayerModal: React.FC<EmulatorPlayerModalProps> = ({
   // display box instead of leaving the entire modal (header/control deck included) stretched
   // across the screen. Browsers allow re-targeting fullscreen to a nested element without a
   // fresh user gesture as long as something is already fullscreen.
+  //
+  // On phones/tablets, also lock orientation to landscape - this is only allowed while the
+  // page is fullscreen, which lines up exactly with the NFC flow. Desktop browsers and ones
+  // without Screen Orientation API support (notably iOS Safari) just silently skip this.
   useEffect(() => {
-    if (document.fullscreenElement && displayStageRef.current) {
-      displayStageRef.current.requestFullscreen().catch(() => {});
-    }
+    if (!document.fullscreenElement || !displayStageRef.current) return;
+
+    displayStageRef.current
+      .requestFullscreen()
+      .then(() => {
+        const orientation = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> };
+        orientation.lock?.('landscape').catch(() => {});
+      })
+      .catch(() => {});
   }, []);
 
   const canLaunch = Boolean(game.serverFileName) && Boolean(system.coreId);
