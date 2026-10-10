@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RomGame, EmulatorSystem, SaveStateSlot } from '../types';
 import { PixelCrtMonitor, PixelFloppy } from '../utils/pixelIcons';
 import { Play, Pause, FastForward, RotateCcw, Camera, X, Volume2, VolumeX } from 'lucide-react';
@@ -10,13 +10,19 @@ interface EmulatorPlayerModalProps {
   system: EmulatorSystem;
   onClose: () => void;
   onUpdatePlaytime: (gameId: string, addedMinutes: number) => void;
+  /** True when opened via the NFC boot flow, which already put the document into fullscreen
+   * at its tap gate. Renders just the bare game screen (no header/control deck) instead of
+   * trying to re-target the Fullscreen API to a nested element, which browsers don't reliably
+   * allow without a fresh user gesture. */
+  kiosk?: boolean;
 }
 
 export const EmulatorPlayerModal: React.FC<EmulatorPlayerModalProps> = ({
   game,
   system,
   onClose,
-  onUpdatePlaytime
+  onUpdatePlaytime,
+  kiosk = false
 }) => {
   const [isPaused, setIsPaused] = useState(false);
   const [speedMultiplier, setSpeedMultiplier] = useState<1 | 2>(1);
@@ -30,28 +36,16 @@ export const EmulatorPlayerModal: React.FC<EmulatorPlayerModalProps> = ({
     5: { slot: 5, exists: false }
   });
   const [isMuted, setIsMuted] = useState(false);
-  const displayStageRef = useRef<HTMLDivElement | null>(null);
 
-  // If the page is already fullscreen when this opens (the NFC boot flow puts the whole
-  // document into fullscreen via its tap gate), swap the fullscreen target to just this
-  // display box instead of leaving the entire modal (header/control deck included) stretched
-  // across the screen. Browsers allow re-targeting fullscreen to a nested element without a
-  // fresh user gesture as long as something is already fullscreen.
-  //
-  // On phones/tablets, also lock orientation to landscape - this is only allowed while the
-  // page is fullscreen, which lines up exactly with the NFC flow. Desktop browsers and ones
-  // without Screen Orientation API support (notably iOS Safari) just silently skip this.
+  // On phones/tablets, lock orientation to landscape - only permitted while the page is
+  // fullscreen, which the NFC boot flow's tap gate already guarantees by the time this mounts.
+  // Desktop browsers and ones without Screen Orientation API support (notably iOS Safari) just
+  // silently skip this.
   useEffect(() => {
-    if (!document.fullscreenElement || !displayStageRef.current) return;
-
-    displayStageRef.current
-      .requestFullscreen()
-      .then(() => {
-        const orientation = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> };
-        orientation.lock?.('landscape').catch(() => {});
-      })
-      .catch(() => {});
-  }, []);
+    if (!kiosk) return;
+    const orientation = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> };
+    orientation.lock?.('landscape').catch(() => {});
+  }, [kiosk]);
 
   const canLaunch = Boolean(game.serverFileName) && Boolean(system.coreId);
   // "core" names a libretro core id directly; "system" instead matches against the console's
@@ -67,6 +61,38 @@ export const EmulatorPlayerModal: React.FC<EmulatorPlayerModalProps> = ({
     }, 60000);
     return () => clearInterval(timer);
   }, [game.id, onUpdatePlaytime]);
+
+  if (kiosk) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black">
+        {embedSrc ? (
+          <iframe
+            title={`${game.title} emulator`}
+            src={embedSrc}
+            allow="gamepad; fullscreen; autoplay"
+            className="absolute inset-0 w-full h-full border-none"
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center px-4 font-mono text-[#DFFF00]">
+            <span className="text-xs font-black uppercase">
+              {system.coreId ? 'No ROM file stored on the server' : 'No emulator core available for this system yet'}
+            </span>
+          </div>
+        )}
+
+        <button
+          onClick={() => {
+            retroAudio.playCancel();
+            onClose();
+          }}
+          className="absolute top-3 right-3 z-10 p-2 bg-[#120024]/70 border-2 border-[#DFFF00] text-[#DFFF00] hover:bg-[#DFFF00] hover:text-[#120024] transition-colors"
+          title="Close Emulator"
+        >
+          <X size={18} />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-[#120024]/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto font-mono text-[#DFFF00]">
@@ -121,8 +147,7 @@ export const EmulatorPlayerModal: React.FC<EmulatorPlayerModalProps> = ({
         {/* Main Emulator Display Stage */}
         <div className="relative bg-[#0a0014] flex flex-col items-center justify-center p-2 sm:p-4 overflow-hidden">
           <div
-            ref={displayStageRef}
-            className="game-display-stage relative w-full max-w-[800px] aspect-[4/3] border-4 border-[#DFFF00] shadow-[0_0_20px_rgba(223,255,0,0.2)] bg-black"
+            className="relative w-full max-w-[800px] aspect-[4/3] border-4 border-[#DFFF00] shadow-[0_0_20px_rgba(223,255,0,0.2)] bg-black"
           >
             {embedSrc ? (
               <iframe

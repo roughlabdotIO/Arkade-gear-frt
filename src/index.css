@@ -148,16 +148,6 @@
   animation: flicker 0.15s infinite;
 }
 
-/* When the game display stage itself becomes the fullscreen element (NFC boot flow), make it
-   actually fill the screen instead of staying capped at its normal in-modal size. */
-.game-display-stage:fullscreen,
-.game-display-stage:-webkit-full-screen {
-  width: 100vw;
-  height: 100vh;
-  max-width: none;
-  aspect-ratio: auto;
-}
-
 /* Custom Sleek Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

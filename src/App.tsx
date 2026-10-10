@@ -55,6 +55,9 @@ export default function App() {
 
   // Modals
   const [runningGame, setRunningGame] = useState<RomGame | null>(null);
+  // True when runningGame was opened via the NFC boot flow (full document fullscreen already
+  // granted by its tap gate) - renders the player in bare kiosk mode instead of the normal modal.
+  const [isKioskLaunch, setIsKioskLaunch] = useState(false);
   const [selectedGameForDetails, setSelectedGameForDetails] = useState<RomGame | null>(null);
   const [selectedSystemForConfig, setSelectedSystemForConfig] = useState<EmulatorSystem | null>(null);
   const [isControllerConfigOpen, setIsControllerConfigOpen] = useState<boolean>(false);
@@ -362,6 +365,7 @@ export default function App() {
         <BootIntroVideo
           onComplete={() => {
             setRunningGame(nfcLaunchGame);
+            setIsKioskLaunch(true);
             setNfcFlowStage('none');
             setNfcLaunchGame(null);
           }}
@@ -373,11 +377,13 @@ export default function App() {
         <EmulatorPlayerModal
           game={runningGame}
           system={systems.find(s => s.id === runningGame.systemId) || systems[0]}
+          kiosk={isKioskLaunch}
           onClose={() => {
             if (document.fullscreenElement) {
               document.exitFullscreen().catch(() => {});
             }
             setRunningGame(null);
+            setIsKioskLaunch(false);
           }}
           onUpdatePlaytime={handleUpdatePlaytime}
         />
