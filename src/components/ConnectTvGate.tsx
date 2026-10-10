@@ -16,13 +16,19 @@ function isIOS(): boolean {
  * themselves once they see this screen reflected on the TV.
  */
 export const ConnectTvGate: React.FC<ConnectTvGateProps> = ({ onContinue }) => {
+  // Rotating to landscape BEFORE connecting matters: we can only lock orientation via JS once
+  // fullscreen (the next step), so if mirroring starts while the phone is still portrait, the
+  // OS negotiates the mirror session at the wrong dimensions and the picture ends up shifted/
+  // misaligned on the TV once we rotate afterwards.
   const steps = isIOS()
     ? [
+        'Ruota il telefono in ORIZZONTALE',
         'Apri il Centro di Controllo (scorri dall\'angolo in alto a destra)',
         'Tocca "Duplica schermo"',
         'Scegli la tua TV dalla lista'
       ]
     : [
+        'Ruota il telefono in ORIZZONTALE',
         'Scorri giù per aprire le impostazioni rapide',
         'Tocca "Trasmetti schermo" (o "Cast")',
         'Scegli la tua TV dalla lista'
