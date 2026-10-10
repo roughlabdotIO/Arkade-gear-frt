@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { RomGame, EmulatorSystem, SaveStateSlot } from '../types';
 import { PixelCrtMonitor, PixelFloppy } from '../utils/pixelIcons';
 import { Play, Pause, FastForward, RotateCcw, Camera, X, Volume2, VolumeX } from 'lucide-react';
@@ -30,6 +30,18 @@ export const EmulatorPlayerModal: React.FC<EmulatorPlayerModalProps> = ({
     5: { slot: 5, exists: false }
   });
   const [isMuted, setIsMuted] = useState(false);
+  const displayStageRef = useRef<HTMLDivElement | null>(null);
+
+  // If the page is already fullscreen when this opens (the NFC boot flow puts the whole
+  // document into fullscreen via its tap gate), swap the fullscreen target to just this
+  // display box instead of leaving the entire modal (header/control deck included) stretched
+  // across the screen. Browsers allow re-targeting fullscreen to a nested element without a
+  // fresh user gesture as long as something is already fullscreen.
+  useEffect(() => {
+    if (document.fullscreenElement && displayStageRef.current) {
+      displayStageRef.current.requestFullscreen().catch(() => {});
+    }
+  }, []);
 
   const canLaunch = Boolean(game.serverFileName) && Boolean(system.coreId);
   // "core" names a libretro core id directly; "system" instead matches against the console's
@@ -98,7 +110,10 @@ export const EmulatorPlayerModal: React.FC<EmulatorPlayerModalProps> = ({
 
         {/* Main Emulator Display Stage */}
         <div className="relative bg-[#0a0014] flex flex-col items-center justify-center p-2 sm:p-4 overflow-hidden">
-          <div className="relative w-full max-w-[800px] aspect-[4/3] border-4 border-[#DFFF00] shadow-[0_0_20px_rgba(223,255,0,0.2)] bg-black">
+          <div
+            ref={displayStageRef}
+            className="game-display-stage relative w-full max-w-[800px] aspect-[4/3] border-4 border-[#DFFF00] shadow-[0_0_20px_rgba(223,255,0,0.2)] bg-black"
+          >
             {embedSrc ? (
               <iframe
                 title={`${game.title} emulator`}
