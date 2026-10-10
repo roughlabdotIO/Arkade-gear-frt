@@ -15,6 +15,7 @@ import { BiosManagerModal } from './components/BiosManagerModal';
 import { ImportRomModal } from './components/ImportRomModal';
 import { LabModal } from './components/LabModal';
 import { NfcBootGate } from './components/NfcBootGate';
+import { ConnectTvGate, isMobileDevice } from './components/ConnectTvGate';
 import { BootIntroVideo } from './components/BootIntroVideo';
 import { CoreSettingsModal } from './components/CoreSettingsModal';
 import { GameDetailsModal } from './components/GameDetailsModal';
@@ -77,9 +78,11 @@ export default function App() {
     const validSystemIds: SystemId[] = ['nes', 'snes', 'gba', 'genesis', 'psx', 'arcade', 'n64', 'neogeo'];
     return validSystemIds.includes(value as SystemId) ? (value as SystemId) : null;
   });
-  // NFC boot flow: "awaiting-tap" (fullscreen/audio permission gate) -> "intro" (boot video) -> game.
-  // Only used for card/deep-link launches - clicking LAUNCH SYSTEM in the library skips straight to the game.
-  const [nfcFlowStage, setNfcFlowStage] = useState<'none' | 'awaiting-tap' | 'intro'>('none');
+  // NFC boot flow: "connect-tv" (mobile only - manual AirPlay/Cast instructions, no web API can
+  // trigger or detect OS-level mirroring) -> "awaiting-tap" (fullscreen/audio permission gate)
+  // -> "intro" (boot video) -> game. Only used for card/deep-link launches - clicking LAUNCH
+  // SYSTEM in the library skips straight to the game.
+  const [nfcFlowStage, setNfcFlowStage] = useState<'none' | 'connect-tv' | 'awaiting-tap' | 'intro'>('none');
   const [nfcLaunchGame, setNfcLaunchGame] = useState<RomGame | null>(null);
 
   // Persist state updates to localStorage
@@ -121,7 +124,7 @@ export default function App() {
       setRoms(prev => prev.map(r => (r.id === match.id ? launchGame : r)));
     }
     setNfcLaunchGame(launchGame);
-    setNfcFlowStage('awaiting-tap');
+    setNfcFlowStage(isMobileDevice() ? 'connect-tv' : 'awaiting-tap');
     setPendingLaunchFileName(null);
   }, [pendingLaunchFileName, pendingLaunchSystemId, roms]);
 
@@ -354,7 +357,10 @@ export default function App() {
         </div>
       </footer>
 
-      {/* NFC card boot flow: tap gate (unlocks fullscreen/audio) -> intro video -> game */}
+      {/* NFC card boot flow: connect TV (mobile only) -> tap gate (unlocks fullscreen/audio) -> intro video -> game */}
+      {nfcFlowStage === 'connect-tv' && nfcLaunchGame && (
+        <ConnectTvGate onContinue={() => setNfcFlowStage('awaiting-tap')} />
+      )}
       {nfcFlowStage === 'awaiting-tap' && nfcLaunchGame && (
         <NfcBootGate
           game={nfcLaunchGame}
