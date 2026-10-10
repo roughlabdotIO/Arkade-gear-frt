@@ -61,8 +61,16 @@ export default function App() {
   const [isLabOpen, setIsLabOpen] = useState<boolean>(false);
 
   // NFC / deep-link: ?launch=<serverFileName> auto-opens that ROM once it's available.
+  // ?system=<id>, if present, overrides whatever system filename-sniffing would have guessed -
+  // written onto the card itself so it launches correctly from any browser/device, not just one
+  // where someone happened to have already corrected it by hand.
   const [pendingLaunchFileName, setPendingLaunchFileName] = useState<string | null>(() => {
     return new URLSearchParams(window.location.search).get('launch');
+  });
+  const [pendingLaunchSystemId] = useState<SystemId | null>(() => {
+    const value = new URLSearchParams(window.location.search).get('system');
+    const validSystemIds: SystemId[] = ['nes', 'snes', 'gba', 'genesis', 'psx', 'arcade', 'n64', 'neogeo'];
+    return validSystemIds.includes(value as SystemId) ? (value as SystemId) : null;
   });
 
   // Persist state updates to localStorage
@@ -96,11 +104,17 @@ export default function App() {
   useEffect(() => {
     if (!pendingLaunchFileName) return;
     const match = roms.find(r => r.serverFileName === pendingLaunchFileName);
-    if (match) {
+    if (!match) return;
+
+    if (pendingLaunchSystemId && match.systemId !== pendingLaunchSystemId) {
+      const corrected = { ...match, systemId: pendingLaunchSystemId };
+      setRoms(prev => prev.map(r => (r.id === match.id ? corrected : r)));
+      setRunningGame(corrected);
+    } else {
       setRunningGame(match);
-      setPendingLaunchFileName(null);
     }
-  }, [pendingLaunchFileName, roms]);
+    setPendingLaunchFileName(null);
+  }, [pendingLaunchFileName, pendingLaunchSystemId, roms]);
 
   // Reconcile library with ROMs actually stored on the backend
   useEffect(() => {

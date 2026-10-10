@@ -31,7 +31,7 @@ export const LabModal: React.FC<LabModalProps> = ({ roms, onClose }) => {
 
   const handleWrite = async () => {
     if (!selectedRom?.serverFileName) return;
-    const launchUrl = `${window.location.origin}${window.location.pathname}?launch=${encodeURIComponent(selectedRom.serverFileName)}`;
+    const launchUrl = `${window.location.origin}${window.location.pathname}?launch=${encodeURIComponent(selectedRom.serverFileName)}&system=${encodeURIComponent(selectedRom.systemId)}`;
 
     retroAudio.playBlip(600);
     setWriteState('waiting-for-card');

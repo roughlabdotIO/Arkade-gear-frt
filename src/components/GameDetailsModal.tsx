@@ -35,7 +35,7 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   const [linkCopied, setLinkCopied] = useState(false);
 
   const nfcLaunchUrl = game.serverFileName
-    ? `${window.location.origin}${window.location.pathname}?launch=${encodeURIComponent(game.serverFileName)}`
+    ? `${window.location.origin}${window.location.pathname}?launch=${encodeURIComponent(game.serverFileName)}&system=${encodeURIComponent(game.systemId)}`
     : null;
 
   const copyNfcLink = () => {
