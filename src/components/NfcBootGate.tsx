@@ -23,6 +23,16 @@ export const NfcBootGate: React.FC<NfcBootGateProps> = ({ game, onStart }) => {
     } catch {
       // Fullscreen can be denied/unsupported - continue the flow regardless.
     }
+
+    // Lock landscape here (not just once the game starts) so the intro video plays landscape
+    // too - only permitted while fullscreen, which the call above just secured.
+    try {
+      const orientation = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> };
+      await orientation.lock?.('landscape');
+    } catch {
+      // Unsupported (e.g. iOS Safari) or denied - continue regardless.
+    }
+
     onStart();
   };
 

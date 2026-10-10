@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { RomGame, EmulatorSystem, SaveStateSlot } from '../types';
 import { PixelCrtMonitor, PixelFloppy } from '../utils/pixelIcons';
-import { Play, Pause, FastForward, RotateCcw, Camera, X, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, FastForward, RotateCcw, Camera, X, Volume2, VolumeX, AlertTriangle } from 'lucide-react';
 import { retroAudio } from '../utils/audio';
 import { getBackendOrigin, serverRomUrl } from '../utils/api';
+import { useGamepads, STANDARD_GAMEPAD_BUTTONS } from '../utils/useGamepads';
 
 interface EmulatorPlayerModalProps {
   game: RomGame;
@@ -37,6 +38,42 @@ export const EmulatorPlayerModal: React.FC<EmulatorPlayerModalProps> = ({
   });
   const [isMuted, setIsMuted] = useState(false);
 
+  // Kiosk-only: the close (X) button auto-hides 5s after it last appeared, and reappears on a
+  // controller Start press. Confirm-close -> confirm-save is a two-step dialog before actually
+  // exiting.
+  const [showCloseButton, setShowCloseButton] = useState(true);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const hideTimerRef = useRef<number | null>(null);
+  const gamepads = useGamepads(kiosk);
+  const wasStartPressedRef = useRef(false);
+
+  const scheduleCloseButtonAutoHide = () => {
+    if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = window.setTimeout(() => setShowCloseButton(false), 5000);
+  };
+
+  useEffect(() => {
+    if (!kiosk) return;
+    scheduleCloseButtonAutoHide();
+    return () => {
+      if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kiosk]);
+
+  // Re-reveal the close button on a controller Start press (edge-triggered, not held).
+  useEffect(() => {
+    if (!kiosk) return;
+    const startPressed = gamepads.some(pad => pad.buttons[STANDARD_GAMEPAD_BUTTONS.start]);
+    if (startPressed && !wasStartPressedRef.current) {
+      setShowCloseButton(true);
+      scheduleCloseButtonAutoHide();
+    }
+    wasStartPressedRef.current = startPressed;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gamepads, kiosk]);
+
   // On phones/tablets, lock orientation to landscape - only permitted while the page is
   // fullscreen, which the NFC boot flow's tap gate already guarantees by the time this mounts.
   // Desktop browsers and ones without Screen Orientation API support (notably iOS Safari) just
@@ -51,7 +88,7 @@ export const EmulatorPlayerModal: React.FC<EmulatorPlayerModalProps> = ({
   // "core" names a libretro core id directly; "system" instead matches against the console's
   // display name (e.g. "NES"), which is not what EmulatorSystem.coreId holds.
   const embedSrc = canLaunch
-    ? `${getBackendOrigin()}/?core=${encodeURIComponent(system.coreId)}&rom=${encodeURIComponent(serverRomUrl(game.serverFileName!))}`
+    ? `${getBackendOrigin()}/?core=${encodeURIComponent(system.coreId)}&rom=${encodeURIComponent(serverRomUrl(game.serverFileName!))}${kiosk ? '&hidemenu=1' : ''}`
     : null;
 
   // Playtime tracker
@@ -80,16 +117,83 @@ export const EmulatorPlayerModal: React.FC<EmulatorPlayerModalProps> = ({
           </div>
         )}
 
-        <button
-          onClick={() => {
-            retroAudio.playCancel();
-            onClose();
-          }}
-          className="absolute top-3 right-3 z-10 p-2 bg-[#120024]/70 border-2 border-[#DFFF00] text-[#DFFF00] hover:bg-[#DFFF00] hover:text-[#120024] transition-colors"
-          title="Close Emulator"
-        >
-          <X size={18} />
-        </button>
+        {showCloseButton && (
+          <button
+            onClick={() => {
+              retroAudio.playCancel();
+              setShowConfirmClose(true);
+            }}
+            className="absolute top-3 right-3 z-10 p-2 bg-[#120024]/70 border-2 border-[#DFFF00] text-[#DFFF00] hover:bg-[#DFFF00] hover:text-[#120024] transition-colors"
+            title="Close Emulator"
+          >
+            <X size={18} />
+          </button>
+        )}
+
+        {showConfirmClose && (
+          <div className="absolute inset-0 z-20 bg-[#120024]/90 backdrop-blur-md flex items-center justify-center p-4 font-mono text-[#DFFF00]">
+            <div className="w-full max-w-sm bg-[#1e003b] border-4 border-[#DFFF00] shadow-[6px_6px_0px_#4B0082] p-5 space-y-4 text-center">
+              <AlertTriangle size={28} className="mx-auto" />
+              <p className="text-sm font-black uppercase">
+                Stai per chiudere il gioco. Sei sicuro?
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={() => {
+                    retroAudio.playPowerUp();
+                    setShowConfirmClose(false);
+                    setShowSavePrompt(true);
+                  }}
+                  className="px-5 py-2 bg-[#DFFF00] hover:bg-[#CCFF00] text-[#120024] border-2 border-[#DFFF00] text-xs font-black uppercase"
+                >
+                  Si
+                </button>
+                <button
+                  onClick={() => {
+                    retroAudio.playCancel();
+                    setShowConfirmClose(false);
+                  }}
+                  className="px-5 py-2 bg-[#120024] hover:bg-[#4B0082] text-[#DFFF00] border-2 border-[#DFFF00] text-xs font-black uppercase"
+                >
+                  No
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showSavePrompt && (
+          <div className="absolute inset-0 z-20 bg-[#120024]/90 backdrop-blur-md flex items-center justify-center p-4 font-mono text-[#DFFF00]">
+            <div className="w-full max-w-sm bg-[#1e003b] border-4 border-[#DFFF00] shadow-[6px_6px_0px_#4B0082] p-5 space-y-4 text-center">
+              <PixelFloppy size={28} color="#DFFF00" className="mx-auto" />
+              <p className="text-sm font-black uppercase">
+                Vuoi salvare i progressi raggiunti?
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={() => {
+                    retroAudio.playPowerUp();
+                    setShowSavePrompt(false);
+                    onClose();
+                  }}
+                  className="px-5 py-2 bg-[#DFFF00] hover:bg-[#CCFF00] text-[#120024] border-2 border-[#DFFF00] text-xs font-black uppercase"
+                >
+                  Si
+                </button>
+                <button
+                  onClick={() => {
+                    retroAudio.playCancel();
+                    setShowSavePrompt(false);
+                    onClose();
+                  }}
+                  className="px-5 py-2 bg-[#120024] hover:bg-[#4B0082] text-[#DFFF00] border-2 border-[#DFFF00] text-xs font-black uppercase"
+                >
+                  No
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
