@@ -16,7 +16,7 @@ interface GameDetailsModalProps {
   systems: EmulatorSystem[];
   onLaunch: (game: RomGame) => void;
   onToggleFavorite: (gameId: string) => void;
-  onDeleteRom: (gameId: string) => void;
+  onDeleteRom: (gameId: string) => Promise<void>;
   onUpdateRom: (updatedRom: RomGame) => void;
   onClose: () => void;
 }
@@ -32,6 +32,8 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   onClose
 }) => {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
 
   const nfcLaunchUrl = game.serverFileName
@@ -340,24 +342,41 @@ export const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
           {/* Actions */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t-2 border-[#DFFF00]/30">
             {confirmDelete ? (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-[#DFFF00]">CONFIRM DELETE?</span>
-                <button
-                  onClick={() => {
-                    retroAudio.playCancel();
-                    onDeleteRom(game.id);
-                    onClose();
-                  }}
-                  className="px-3 py-1.5 bg-[#4B0082] hover:bg-[#6A0DAD] text-[#DFFF00] border-2 border-[#DFFF00] text-xs font-black transition-colors"
-                >
-                  YES, DELETE
-                </button>
-                <button
-                  onClick={() => setConfirmDelete(false)}
-                  className="px-2.5 py-1.5 bg-[#120024] text-[#DFFF00] border border-[#DFFF00] text-xs"
-                >
-                  CANCEL
-                </button>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-[#DFFF00]">CONFIRM DELETE?</span>
+                  <button
+                    disabled={isDeleting}
+                    onClick={async () => {
+                      retroAudio.playCancel();
+                      setIsDeleting(true);
+                      setDeleteError(null);
+                      try {
+                        await onDeleteRom(game.id);
+                        onClose();
+                      } catch (err) {
+                        setIsDeleting(false);
+                        setDeleteError(err instanceof Error ? err.message : 'Delete failed');
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-[#4B0082] hover:bg-[#6A0DAD] disabled:opacity-50 text-[#DFFF00] border-2 border-[#DFFF00] text-xs font-black transition-colors"
+                  >
+                    {isDeleting ? 'DELETING...' : 'YES, DELETE'}
+                  </button>
+                  <button
+                    disabled={isDeleting}
+                    onClick={() => {
+                      setConfirmDelete(false);
+                      setDeleteError(null);
+                    }}
+                    className="px-2.5 py-1.5 bg-[#120024] text-[#DFFF00] border border-[#DFFF00] text-xs disabled:opacity-50"
+                  >
+                    CANCEL
+                  </button>
+                </div>
+                {deleteError && (
+                  <span className="text-[10px] text-[#DFFF00] font-bold">{deleteError}</span>
+                )}
               </div>
             ) : (
               <button

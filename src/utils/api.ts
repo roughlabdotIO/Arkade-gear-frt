@@ -47,6 +47,13 @@ export function uploadRom(file: File, onProgress?: (percent: number) => void): P
   });
 }
 
+export async function deleteRom(fileName: string): Promise<void> {
+  const res = await fetch(`/api/roms/${encodeURIComponent(fileName)}`, { method: 'DELETE' });
+  if (!res.ok) {
+    throw new Error(`Failed to delete ROM: ${res.status}`);
+  }
+}
+
 /** Absolute URL to a ROM file already stored on the backend, for feeding into the emulator iframe. */
 export function serverRomUrl(fileName: string): string {
   return `${getBackendOrigin()}/roms/${encodeURIComponent(fileName)}`;

@@ -18,7 +18,7 @@ import { CoreSettingsModal } from './components/CoreSettingsModal';
 import { GameDetailsModal } from './components/GameDetailsModal';
 import { retroAudio } from './utils/audio';
 import { PixelGamepad, PixelCrtMonitor, PixelCpu, PixelCartridge } from './utils/pixelIcons';
-import { listServerRoms } from './utils/api';
+import { listServerRoms, deleteRom } from './utils/api';
 import { detectSystemFromFilename } from './utils/detectSystem';
 import { detectRegionFromFilename } from './utils/detectRegion';
 
@@ -182,7 +182,11 @@ export default function App() {
     }
   };
 
-  const handleDeleteRom = (gameId: string) => {
+  const handleDeleteRom = async (gameId: string) => {
+    const rom = roms.find(r => r.id === gameId);
+    if (rom?.serverFileName) {
+      await deleteRom(rom.serverFileName);
+    }
     setRoms(prev => prev.filter(r => r.id !== gameId));
     if (selectedGameForDetails?.id === gameId) {
       setSelectedGameForDetails(null);
