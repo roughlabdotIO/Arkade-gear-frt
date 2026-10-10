@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { RomGame, EmulatorSystem, SaveStateSlot } from '../types';
 import { PixelCrtMonitor, PixelFloppy } from '../utils/pixelIcons';
-import { Play, Pause, FastForward, RotateCcw, Camera, X, Volume2, VolumeX, AlertTriangle } from 'lucide-react';
+import { Play, Pause, FastForward, RotateCcw, Camera, X, Volume2, VolumeX, AlertTriangle, Maximize } from 'lucide-react';
 import { retroAudio } from '../utils/audio';
 import { getBackendOrigin, serverRomUrl } from '../utils/api';
 import { useGamepads, STANDARD_GAMEPAD_BUTTONS } from '../utils/useGamepads';
@@ -51,6 +51,23 @@ export const EmulatorPlayerModal: React.FC<EmulatorPlayerModalProps> = ({
   const scheduleCloseButtonAutoHide = () => {
     if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
     hideTimerRef.current = window.setTimeout(() => setShowCloseButton(false), 5000);
+  };
+
+  // Re-enter fullscreen (e.g. if the user backed out of it by accident, or the mirroring
+  // session dropped it) - this is a direct click handler, so it's a real user gesture and the
+  // browser will grant it reliably, unlike the earlier approach of trying to request fullscreen
+  // from a useEffect.
+  const reenterFullscreen = async () => {
+    retroAudio.playBlip(600);
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      }
+      const orientation = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> };
+      await orientation.lock?.('landscape').catch(() => {});
+    } catch {
+      // Denied/unsupported - button just stays available to try again.
+    }
   };
 
   useEffect(() => {
@@ -118,16 +135,25 @@ export const EmulatorPlayerModal: React.FC<EmulatorPlayerModalProps> = ({
         )}
 
         {showCloseButton && (
-          <button
-            onClick={() => {
-              retroAudio.playCancel();
-              setShowConfirmClose(true);
-            }}
-            className="absolute top-3 right-3 z-10 p-2 bg-[#120024]/70 border-2 border-[#DFFF00] text-[#DFFF00] hover:bg-[#DFFF00] hover:text-[#120024] transition-colors"
-            title="Close Emulator"
-          >
-            <X size={18} />
-          </button>
+          <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+            <button
+              onClick={reenterFullscreen}
+              className="p-2 bg-[#120024]/70 border-2 border-[#DFFF00] text-[#DFFF00] hover:bg-[#DFFF00] hover:text-[#120024] transition-colors"
+              title="Back to Fullscreen"
+            >
+              <Maximize size={18} />
+            </button>
+            <button
+              onClick={() => {
+                retroAudio.playCancel();
+                setShowConfirmClose(true);
+              }}
+              className="p-2 bg-[#120024]/70 border-2 border-[#DFFF00] text-[#DFFF00] hover:bg-[#DFFF00] hover:text-[#120024] transition-colors"
+              title="Close Emulator"
+            >
+              <X size={18} />
+            </button>
+          </div>
         )}
 
         {showConfirmClose && (
