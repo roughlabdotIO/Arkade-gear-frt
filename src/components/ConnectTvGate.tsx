@@ -61,5 +61,11 @@ export const ConnectTvGate: React.FC<ConnectTvGateProps> = ({ onContinue }) => {
 };
 
 export function isMobileDevice(): boolean {
-  return /Android|iPad|iPhone|iPod/.test(navigator.userAgent);
+  const uaMatch = /Android|iPad|iPhone|iPod/.test(navigator.userAgent);
+  // Chrome's User-Agent Client Hints API - a more reliable "is this phone/tablet" signal than UA
+  // sniffing where available (Chrome/Android), in case the UA string itself is somehow atypical.
+  const uaDataMobile = (navigator as any).userAgentData?.mobile === true;
+  // Touch-primary device with a coarse pointer - catches anything the two checks above miss.
+  const touchHeuristic = navigator.maxTouchPoints > 1 && window.matchMedia('(pointer: coarse)').matches;
+  return uaMatch || uaDataMobile || touchHeuristic;
 }
