@@ -14,6 +14,8 @@ import { ControllerConfigModal } from './components/ControllerConfigModal';
 import { BiosManagerModal } from './components/BiosManagerModal';
 import { ImportRomModal } from './components/ImportRomModal';
 import { LabModal } from './components/LabModal';
+import { NfcBootGate } from './components/NfcBootGate';
+import { BootIntroVideo } from './components/BootIntroVideo';
 import { CoreSettingsModal } from './components/CoreSettingsModal';
 import { GameDetailsModal } from './components/GameDetailsModal';
 import { retroAudio } from './utils/audio';
@@ -72,6 +74,10 @@ export default function App() {
     const validSystemIds: SystemId[] = ['nes', 'snes', 'gba', 'genesis', 'psx', 'arcade', 'n64', 'neogeo'];
     return validSystemIds.includes(value as SystemId) ? (value as SystemId) : null;
   });
+  // NFC boot flow: "awaiting-tap" (fullscreen/audio permission gate) -> "intro" (boot video) -> game.
+  // Only used for card/deep-link launches - clicking LAUNCH SYSTEM in the library skips straight to the game.
+  const [nfcFlowStage, setNfcFlowStage] = useState<'none' | 'awaiting-tap' | 'intro'>('none');
+  const [nfcLaunchGame, setNfcLaunchGame] = useState<RomGame | null>(null);
 
   // Persist state updates to localStorage
   useEffect(() => {
@@ -106,13 +112,13 @@ export default function App() {
     const match = roms.find(r => r.serverFileName === pendingLaunchFileName);
     if (!match) return;
 
+    let launchGame = match;
     if (pendingLaunchSystemId && match.systemId !== pendingLaunchSystemId) {
-      const corrected = { ...match, systemId: pendingLaunchSystemId };
-      setRoms(prev => prev.map(r => (r.id === match.id ? corrected : r)));
-      setRunningGame(corrected);
-    } else {
-      setRunningGame(match);
+      launchGame = { ...match, systemId: pendingLaunchSystemId };
+      setRoms(prev => prev.map(r => (r.id === match.id ? launchGame : r)));
     }
+    setNfcLaunchGame(launchGame);
+    setNfcFlowStage('awaiting-tap');
     setPendingLaunchFileName(null);
   }, [pendingLaunchFileName, pendingLaunchSystemId, roms]);
 
@@ -345,12 +351,34 @@ export default function App() {
         </div>
       </footer>
 
+      {/* NFC card boot flow: tap gate (unlocks fullscreen/audio) -> intro video -> game */}
+      {nfcFlowStage === 'awaiting-tap' && nfcLaunchGame && (
+        <NfcBootGate
+          game={nfcLaunchGame}
+          onStart={() => setNfcFlowStage('intro')}
+        />
+      )}
+      {nfcFlowStage === 'intro' && nfcLaunchGame && (
+        <BootIntroVideo
+          onComplete={() => {
+            setRunningGame(nfcLaunchGame);
+            setNfcFlowStage('none');
+            setNfcLaunchGame(null);
+          }}
+        />
+      )}
+
       {/* Active Running Emulator Modal */}
       {runningGame && (
         <EmulatorPlayerModal
           game={runningGame}
           system={systems.find(s => s.id === runningGame.systemId) || systems[0]}
-          onClose={() => setRunningGame(null)}
+          onClose={() => {
+            if (document.fullscreenElement) {
+              document.exitFullscreen().catch(() => {});
+            }
+            setRunningGame(null);
+          }}
           onUpdatePlaytime={handleUpdatePlaytime}
         />
       )}
