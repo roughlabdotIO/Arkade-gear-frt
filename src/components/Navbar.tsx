@@ -1,5 +1,6 @@
 import React from 'react';
 import { PixelGamepad, PixelSound, PixelCrtMonitor, PixelCpu, PixelCartridge } from '../utils/pixelIcons';
+import { FlaskConical } from 'lucide-react';
 import { retroAudio } from '../utils/audio';
 
 interface NavbarProps {
@@ -10,6 +11,7 @@ interface NavbarProps {
   onOpenControllerConfig: () => void;
   onOpenBiosManager: () => void;
   onOpenImportRom: () => void;
+  onOpenLab: () => void;
   totalGames: number;
   totalSystems: number;
 }
@@ -22,6 +24,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenControllerConfig,
   onOpenBiosManager,
   onOpenImportRom,
+  onOpenLab,
   totalGames,
   totalSystems
 }) => {
@@ -117,6 +120,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <PixelCpu size={14} color="currentColor" />
               <span>BIOS</span>
+            </button>
+
+            {/* LAB - write physical NFC cards */}
+            <button
+              onClick={() => {
+                retroAudio.playBlip(550);
+                onOpenLab();
+              }}
+              className="flex items-center gap-1.5 px-3 py-1 border-2 border-[#DFFF00] hover:bg-[#DFFF00] hover:text-[#120024] text-[#DFFF00] text-[10px] font-bold uppercase transition-colors"
+            >
+              <FlaskConical size={14} color="currentColor" />
+              <span>LAB</span>
             </button>
 
             {/* Add ROM Button */}

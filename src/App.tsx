@@ -13,6 +13,7 @@ import { EmulatorPlayerModal } from './components/EmulatorPlayerModal';
 import { ControllerConfigModal } from './components/ControllerConfigModal';
 import { BiosManagerModal } from './components/BiosManagerModal';
 import { ImportRomModal } from './components/ImportRomModal';
+import { LabModal } from './components/LabModal';
 import { CoreSettingsModal } from './components/CoreSettingsModal';
 import { GameDetailsModal } from './components/GameDetailsModal';
 import { retroAudio } from './utils/audio';
@@ -57,6 +58,7 @@ export default function App() {
   const [isControllerConfigOpen, setIsControllerConfigOpen] = useState<boolean>(false);
   const [isBiosManagerOpen, setIsBiosManagerOpen] = useState<boolean>(false);
   const [isImportRomOpen, setIsImportRomOpen] = useState<boolean>(false);
+  const [isLabOpen, setIsLabOpen] = useState<boolean>(false);
 
   // NFC / deep-link: ?launch=<serverFileName> auto-opens that ROM once it's available.
   const [pendingLaunchFileName, setPendingLaunchFileName] = useState<string | null>(() => {
@@ -215,6 +217,7 @@ export default function App() {
         onOpenControllerConfig={() => setIsControllerConfigOpen(true)}
         onOpenBiosManager={() => setIsBiosManagerOpen(true)}
         onOpenImportRom={() => setIsImportRomOpen(true)}
+        onOpenLab={() => setIsLabOpen(true)}
         totalGames={roms.length}
         totalSystems={systems.length}
       />
@@ -382,6 +385,14 @@ export default function App() {
           lockedSystemId={selectedSystemId !== 'all' ? selectedSystemId : undefined}
           onAddRom={handleAddRom}
           onClose={() => setIsImportRomOpen(false)}
+        />
+      )}
+
+      {/* LAB - write a game's launch link onto a physical NFC card */}
+      {isLabOpen && (
+        <LabModal
+          roms={roms}
+          onClose={() => setIsLabOpen(false)}
         />
       )}
     </div>
